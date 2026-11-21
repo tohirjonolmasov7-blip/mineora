@@ -1,1 +1,165 @@
 
+<!DOCTYPE html>
+<html lang="uz">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>MINEORA</title>
+<script src="https://telegram.org/js/telegram-web-app.js"></script>
+<style>
+*{box-sizing:border-box}
+body{margin:0;background:#050b16;color:white;font-family:Arial;text-align:center}
+header{padding:22px;color:#42d5ff;font-size:27px;font-weight:bold}
+.balance{font-size:38px;font-weight:bold;margin:20px;color:#fff}
+.coin{width:230px;height:230px;border-radius:50%;margin:35px auto;background:radial-gradient(circle,#294a65,#101a2a);border:9px solid #25364b;box-shadow:0 0 35px #087bb7;display:flex;align-items:center;justify-content:center;font-size:90px;cursor:pointer}
+button{border:0;border-radius:14px;padding:15px 22px;background:linear-gradient(90deg,#168bc8,#36d1ee);color:white;font-size:16px;font-weight:bold}
+.stats{display:flex;gap:10px;margin:20px 10px}
+.stat{flex:1;background:#101d2d;padding:16px 5px;border-radius:14px;border:1px solid #25435b}
+.stat b{color:#43caff}
+.page{display:none;padding:15px 15px 100px}
+.page.active{display:block}
+.card{background:#101d2d;border:1px solid #25435b;padding:20px;border-radius:16px;margin:15px 0}
+.action{width:100%}
+input{width:100%;padding:14px;background:#0b1422;border:1px solid #34516a;border-radius:12px;color:white;margin:12px 0}
+nav{position:fixed;bottom:0;left:0;right:0;background:#101a2b;display:flex;justify-content:space-around;padding:13px 2px}
+nav button{background:none;color:#aebbd0;font-size:12px;padding:7px}
+nav button.selected{color:#41d1ff}
+.small{color:#93a5ba;font-size:13px}
+</style>
+</head>
+<body>
+
+<header>⛏ MINEORA</header>
+<p>Welcome, <b id="username">Miner</b> 👋</p>
+
+<div class="page active" id="home">
+<p class="small">YOUR MINING BALANCE</p>
+<div class="balance" id="coins">0</div>
+<p style="color:#42dca2">MINE COINS</p>
+<div class="coin" onclick="mine()">⛏️</div>
+<button onclick="mine()">⚡ TAP TO MINE</button>
+<div class="stats">
+<div class="stat">⚡ ENERGY<br><b id="energy">1000</b>/1000</div>
+<div class="stat">💎 PER TAP<br><b>+1</b></div>
+</div>
+</div>
+
+<div class="page" id="daily">
+<h2>🎁 DAILY REWARDS</h2>
+<div class="card">
+<h1 style="color:#ffd45a">+100 MINE</h1>
+<p>Har kuni bonus oling!</p>
+<button class="action" onclick="bonus()">CLAIM REWARD</button>
+<p id="bonusMsg"></p>
+</div>
+</div>
+
+<div class="page" id="friends">
+<h2>👥 INVITE FRIENDS</h2>
+<div class="card">
+<p>Do‘stlaringizni taklif qiling!</p>
+<input id="refLink" readonly>
+<button class="action" onclick="copyLink()">COPY LINK</button>
+</div>
+</div>
+
+<div class="page" id="wallet">
+<h2>💰 MY WALLET</h2>
+<div class="card">
+<h2 id="walletCoins">0 MINE</h2>
+<p>USDT TRC20 wallet address</p>
+<input id="walletAddress" placeholder="Hamyon manzilini kiriting">
+<button class="action" onclick="saveWallet()">SAVE ADDRESS</button>
+<p id="walletMsg" class="small"></p>
+<p class="small">Withdrawals are not activated yet.</p>
+</div>
+</div>
+
+<nav>
+<button class="selected" onclick="openPage('home',this)">⛏️<br>Mine</button>
+<button onclick="openPage('daily',this)">🎁<br>Bonus</button>
+<button onclick="openPage('friends',this)">👥<br>Friends</button>
+<button onclick="openPage('wallet',this)">💳<br>Wallet</button>
+</nav>
+
+<script>
+const tg=window.Telegram?.WebApp;
+tg?.ready();
+tg?.expand();
+
+let coins=Number(localStorage.getItem('mineoraCoins')||0);
+let energy=Number(localStorage.getItem('mineoraEnergy')||1000);
+let lastBonus=localStorage.getItem('mineoraBonus')||'';
+const user=tg?.initDataUnsafe?.user;
+
+document.getElementById('username').textContent=user?.first_name||'Miner';
+
+function update(){
+ document.getElementById('coins').textContent=coins.toLocaleString();
+ document.getElementById('walletCoins').textContent=coins.toLocaleString()+' MINE';
+ document.getElementById('energy').textContent=energy;
+ localStorage.setItem('mineoraCoins',coins);
+ localStorage.setItem('mineoraEnergy',energy);
+}
+
+function mine(){
+ if(energy<=0){alert('Energiya tugadi!');return}
+ coins++;
+ energy--;
+ update();
+ tg?.HapticFeedback?.impactOccurred('light');
+}
+
+function bonus(){
+ const today=new Date().toDateString();
+ if(lastBonus===today){
+ document.getElementById('bonusMsg').textContent='Bugungi bonus olingan!';
+ return;
+ }
+ coins+=100;
+ lastBonus=today;
+ localStorage.setItem('mineoraBonus',today);
+ update();
+ document.getElementById('bonusMsg').textContent='+100 MINE olindi!';
+}
+
+function openPage(id,btn){
+ document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
+ document.getElementById(id).classList.add('active');
+ document.querySelectorAll('nav button').forEach(b=>b.classList.remove('selected'));
+ btn.classList.add('selected');
+}
+
+document.getElementById('refLink').value=user?.id
+ ? 'https://t.me/Mineora_bot?start='+user.id
+ : 'Telegram bot orqali oching';
+
+function copyLink(){
+ const input=document.getElementById('refLink');
+ input.select();
+ document.execCommand('copy');
+ alert('Havola nusxalandi!');
+}
+
+function saveWallet(){
+ const address=document.getElementById('walletAddress').value.trim();
+ if(!address){alert('Hamyon manzilini kiriting');return}
+ localStorage.setItem('mineoraWallet',address);
+ document.getElementById('walletMsg').textContent='Manzil saqlandi!';
+}
+
+document.getElementById('walletAddress').value=
+ localStorage.getItem('mineoraWallet')||'';
+
+setInterval(()=>{
+ if(energy<1000){
+ energy=Math.min(1000,energy+1);
+ update();
+ }
+},30000);
+
+update();
+</script>
+</body>
+</html>
+
